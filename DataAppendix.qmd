@@ -1,0 +1,56 @@
+---
+title: "Data Appendix: Business Types and Povery Rates"
+author: "Group C2: Luke Borowy, Tae Kosmo, Jair Vargas"
+format: pdf
+editor: visual
+execute: 
+  eval: true
+  message: false
+  error: true
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r}
+#| context: setup
+#| include: false
+library(tidyverse)
+library(Stat2Data)
+library(skimr)
+```
+
+{{< pagebreak >}}
+
+## Observations
+
+```{r}
+business <- read_csv("business_data_c2.csv")
+
+```
+
+```{r}
+business <- business %>% select(COUNTY_NAME, STATE, rate_food_env_pos, rate_food_env_neg, rate_hc_env, rate_ed_env, rate_al_pn_gm_env, rate_ss_env, rate_trans_env, rate_civic_env, rate_rec_env, rate_ent_env, pct_pers_lt_pov)
+skim(business)
+```
+
+We removed all of the variables from the dataset that we are not interested in, leaving only 9 explanatory and 1 response (poverty rate).
+
+The variable names seem OK, following the pattern rate\_\[thing\]\_env to match the types of businesses.
+
+The variable types and values look pretty good, with no strange negative values. There is one single case, case 298 (San Juan County CO), which has a `rate_rec_env` which is 10 times any other case. It appears to be a data entry error where a zero was missed. Therefore we will exclude this value from our regression.
+
+There are several cases with missing information for some of the variables. For the variable `rate_civic_env`, the completion rate is only 73.3%. However, because of the size of the dataset that still leaves 2303 observations.
+
+As identified previously, there are problems with independence because of the geographic proximity of some counties. To counteract this, we will randomly divide the data 50% into a training set and testing set.
+
+By examining the data and fitting some preliminary models it appears that taking the log of poverty rate greatly helps with normality and other conditions for linear regression. Therefore we will do this in our analysis.
+
+```{r}
+business <- business %>%
+  mutate( trans_civic = log(rate_civic_env), trans_pov = log(pct_pers_lt_pov))
+ggplot(business, aes(x = rate_rec_env, y = pct_pers_lt_pov)) + geom_point()
+
+m1 <- lm(trans_pov ~ trans_civic, data = business)
+summary(m1)
+plot(m1)
+```
